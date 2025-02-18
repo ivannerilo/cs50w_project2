@@ -1,0 +1,17 @@
+{% extends "auctions/layout.html" %}
+{% load static %}
+
+{% block style %}
+ <link href="{% static 'auctions/styles.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
+{% endblock %}
+
+
+
+{% block body %}
+    <h1>Create your listing</h1>
+    <form arction="/" method="post">
+        {% csrf_token %}
+        {{ forms }}
+        <button type="submit">Save</button>
+    </form>
+{% endblock %}

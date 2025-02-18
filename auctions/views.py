@@ -3,12 +3,51 @@ from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
+from django import forms
+from .models import Listings, User, Bids, Comments
+from django.utils.timezone import now
+import time
 
-from .models import User
+from . import models
+
+STATIC_VERSION = int(time.time()) 
+
+class listingForm(forms.Form):
+    title = forms.CharField(max_length=50)
+    description = forms.CharField(max_length=200, widget=forms.Textarea(
+        attrs={"rows": 10, "cols": 50, "placeholder": "Describe the item here!"}
+    ))
+    price = forms.DecimalField(decimal_places=2, max_digits=10)
+    image = forms.ImageField()
 
 
-def index(request):
-    return render(request, "auctions/index.html")
+def index(request): 
+    listings = models.Listings.objects.all()
+    return render(request, "auctions/index.html", {
+        "listings": listings,
+        "STATIC_VERSION": STATIC_VERSION
+    })
+
+def create(request):
+    if request.method == 'POST':
+        form = listingForm(request.POST, request.FILES)
+        if form.is_valid():
+            data = form.cleaned_data
+            s = Listings.objects.create(
+                title=data.title,
+                description=data.description,
+                price=data.price,
+                data_stamp=now(),
+                user_id=request.user
+                # Adicionar o campo imagem e testar a inserção de dados!!!
+                )
+            s.save()
+
+
+    return render(request, "auctions/create.html", {
+        "forms": listingForm,
+        "STATIC_VERSION": STATIC_VERSION
+    })
 
 
 def login_view(request):
@@ -25,10 +64,13 @@ def login_view(request):
             return HttpResponseRedirect(reverse("index"))
         else:
             return render(request, "auctions/login.html", {
-                "message": "Invalid username and/or password."
+                "message": "Invalid username and/or password.",
+                "STATIC_VERSION": STATIC_VERSION
             })
     else:
-        return render(request, "auctions/login.html")
+        return render(request, "auctions/login.html", {
+            "STATIC_VERSION": STATIC_VERSION
+        })
 
 
 def logout_view(request):
@@ -46,7 +88,8 @@ def register(request):
         confirmation = request.POST["confirmation"]
         if password != confirmation:
             return render(request, "auctions/register.html", {
-                "message": "Passwords must match."
+                "message": "Passwords must match.",
+                "STATIC_VERSION": STATIC_VERSION
             })
 
         # Attempt to create new user
@@ -55,7 +98,8 @@ def register(request):
             user.save()
         except IntegrityError:
             return render(request, "auctions/register.html", {
-                "message": "Username already taken."
+                "message": "Username already taken.",
+                "STATIC_VERSION": STATIC_VERSION
             })
         login(request, user)
         return HttpResponseRedirect(reverse("index"))

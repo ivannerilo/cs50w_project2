@@ -1,4 +1,9 @@
 {% extends "auctions/layout.html" %}
+{% load static %}
+
+{% block style %}
+ <link href="{% static 'auctions/styles.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
+{% endblock %}
 
 {% block body %}
 

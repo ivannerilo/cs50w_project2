@@ -1,7 +1,25 @@
 {% extends "auctions/layout.html" %}
+{% load static %}
+
+{% block style %}
+ <link href="{% static 'auctions/styles.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
+{% endblock %}
+
+
 
 {% block body %}
     <h2>Active Listings</h2>
-
-    TODO
+    {% for listing in listings %}
+        <div class="listing_container">
+            <div class="listing_image">
+                <img src="media/{{listing.image}}"></img>
+            </div>
+            <div class="listing_content">
+                <h5><strong> {{listing.title}} </strong></h5>
+                <p><strong>Price:</strong> U${{listing.price}}</p>
+                <p> {{listing.description}} </p>
+                <small> {{listing.data_stamp}} </small>
+            </div>
+        </div>
+    {% endfor %}
 {% endblock %}
