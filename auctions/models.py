@@ -10,7 +10,7 @@ class Listings(models.Model):
     description = models.CharField(max_length=200)
     price = models.DecimalField(decimal_places=2, max_digits=10)
     image = models.ImageField(blank=True, null=True, upload_to="images/")
-    data_stamp = models.DateTimeField()
+    data_stamp = models.DateTimeField(auto_now_add=True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
 
 

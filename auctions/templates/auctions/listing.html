@@ -1,0 +1,37 @@
+{% extends "auctions/layout.html" %}
+{% load static %}
+
+{% block style %}
+ <link href="{% static 'auctions/styles.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
+{% endblock %}
+
+
+
+{% block body %}
+<div class="show_listing_container"> 
+    <div>
+        <h3> {{listing.title}} </h3>
+    </div>
+    <div>
+        <img src="/media/{{listing.image}}"></img>
+    </div>
+
+    <p>{{listing.description}}</p>
+    <h4>U${{listing.price}}</h4>
+    <div>
+        <form method="post">
+            {% csrf_token %}
+            <label> {{bids}} bid so far:</label>
+            {{ form }}
+            <button type="submit" class="submit_btn">Place Bid</button>
+        </form>
+    </div>
+    <div>
+        <p><strong>Details</strong></p>
+        <ui>
+            <li>Diabaredo</li>
+            <li>Diabaredo2</li>
+        </ui>
+    </div>
+</div>
+{% endblock %}

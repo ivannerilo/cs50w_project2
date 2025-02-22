@@ -10,6 +10,7 @@
 {% block body %}
     <h2>Active Listings</h2>
     {% for listing in listings %}
+    <a href="/listing/{{listing.pk}}" class="a_div">
         <div class="listing_container">
             <div class="listing_image">
                 <img src="media/{{listing.image}}"></img>
@@ -21,5 +22,6 @@
                 <small> {{listing.data_stamp}} </small>
             </div>
         </div>
+    </a>
     {% endfor %}
 {% endblock %}

@@ -9,7 +9,7 @@
 
 {% block body %}
     <h1>Create your listing</h1>
-    <form arction="/" method="post">
+    <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {{ forms }}
         <button type="submit">Save</button>

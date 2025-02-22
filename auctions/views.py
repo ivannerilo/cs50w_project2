@@ -6,6 +6,7 @@ from django.urls import reverse
 from django import forms
 from .models import Listings, User, Bids, Comments
 from django.utils.timezone import now
+from .utils import actual_index
 import time
 
 from . import models
@@ -20,6 +21,13 @@ class listingForm(forms.Form):
     price = forms.DecimalField(decimal_places=2, max_digits=10)
     image = forms.ImageField()
 
+class bidsForm(forms.Form):
+    bid = forms.DecimalField(
+        label='',
+        decimal_places=2,
+        max_digits=10,
+        widget=forms.TextInput(attrs={"class": "bid_form"}))
+
 
 def index(request): 
     listings = models.Listings.objects.all()
@@ -28,22 +36,48 @@ def index(request):
         "STATIC_VERSION": STATIC_VERSION
     })
 
+def show_listing(request, pk):
+    l = Listings.objects.get(pk=pk)
+    if request.method == "POST":
+        form = bidsForm(request.POST)
+        if form.is_valid():
+            b = Bids(
+                price=request.POST["bid"],
+                listing_id=l,
+                user_id=request.user
+            )
+            b.save()
+    listing_list = Listings.objects.all()
+    bids = Bids.objects.filter(listing_id=l)
+    if pk > len(listing_list) or pk < 0:
+        pk = 1 
+    return render(request, "auctions/listing.html", {
+        "listing": listing_list[actual_index(pk)],
+        "form": bidsForm(),
+        "STATIC_VERSION": STATIC_VERSION,
+        "bids": len(bids)
+    })
+    
+
 def create(request):
     if request.method == 'POST':
         form = listingForm(request.POST, request.FILES)
         if form.is_valid():
-            data = form.cleaned_data
             s = Listings.objects.create(
-                title=data.title,
-                description=data.description,
-                price=data.price,
+                title=form.cleaned_data["title"],
+                description=form.cleaned_data["description"],
+                price=form.cleaned_data["price"],
+                image=form.cleaned_data["image"],
                 data_stamp=now(),
                 user_id=request.user
-                # Adicionar o campo imagem e testar a inserção de dados!!!
-                )
+            )
             s.save()
-
-
+        else:
+            return render(request, "auctions/create.html", {
+                "forms": form,
+                "STATIC_VERSION": STATIC_VERSION
+            })
+        
     return render(request, "auctions/create.html", {
         "forms": listingForm,
         "STATIC_VERSION": STATIC_VERSION
