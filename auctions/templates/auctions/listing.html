@@ -21,17 +21,31 @@
     <div>
         <form method="post">
             {% csrf_token %}
-            <label> {{bids}} bid so far:</label>
-            {{ form }}
+            <label> {{bids}} bid so far: {% if message %}<strong style="color: red;">{{message}}</strong>{% endif %} </label>
+            {{ bid_form }}
             <button type="submit" class="submit_btn">Place Bid</button>
         </form>
     </div>
     <div>
         <p><strong>Details</strong></p>
         <ui>
-            <li>Diabaredo</li>
-            <li>Diabaredo2</li>
+            <li>Listed by:<strong> {{listing_user|capfirst}} </strong></li>
+            <li>Category: {{listing.category|capfirst}} </li>
         </ui>
     </div>
+    <div>
+        <p><strong>Comments:</strong></p>
+        <form method="POST">
+            {% csrf_token %}
+            {{comment_form}}
+            <button type="submit" class="submit_btn" style="background-color: grey;">Add Comment</button>
+        </form>
+        <ul>
+            {% for comment in comments %}
+                <li style="margin: 2px;"><strong>{{comment.user_id|capfirst}}:</strong> {{comment.comment}}</li>
+            {% endfor %}
+        </ul>
+    </div>
 </div>
+
 {% endblock %}

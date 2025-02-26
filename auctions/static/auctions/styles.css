@@ -22,12 +22,23 @@ body {
     width: 100%;
 }
 
+.comment_form {
+    width: 50%;
+    border: none; 
+    border-bottom: 1px solid black; 
+    outline: none; 
+    padding: 5px;
+}
+
+.comment_form:focus {
+    outline: none;
+}
+
 .submit_btn{
     background-color: rgb(0, 170, 255);
     border-radius: 2px;
     margin: 5px 1px;
     border: grey thin 1px;
-
 }
 
 .submit_btn:hover{
