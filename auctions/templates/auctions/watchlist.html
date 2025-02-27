@@ -23,7 +23,7 @@
                 <form method="post">
                     {% csrf_token %}
                     <input type="hidden" name="watchlist" value="{{listing.pk}}">
-                    <button type="submit">Add to watchlist.</button>
+                    <button type="submit">Remove from watchlist.</button>
                 </form>
             </div>
         </div>

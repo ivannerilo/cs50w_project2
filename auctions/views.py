@@ -4,7 +4,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 from django import forms
-from .models import Listings, User, Bids, Comments, CATEGORIES
+from .models import Listings, User, Bids, Comments, Watchlist, CATEGORIES
 from django.utils.timezone import now
 from .utils import actual_index
 import time
@@ -34,14 +34,33 @@ class commentForm(forms.Form):
     comment = forms.CharField(max_length=200, label="", widget=forms.TextInput(attrs={"class": "comment_form"}))
 
 
-def index(request): 
+def index(request):
+    if request.method == 'POST':
+        if request.user.is_authenticated:
+            l = Listings.objects.get(pk=request.POST["watchlist"])
+            w = Watchlist(
+                listing_id = l,
+                user_id = request.user
+            )
+            w.save()
+            return HttpResponseRedirect(reverse("index"))
+
     listings = models.Listings.objects.all()
     return render(request, "auctions/index.html", {
         "listings": listings,
         "STATIC_VERSION": STATIC_VERSION
     })
 
+def watch_list(request):
+    l = Listings.objects.filter(id__in=Watchlist.objects.filter(user_id=request.user).values('listing_id'))
+    return render(request, "auctions/watchlist.html", {
+        "listings": l,
+        "STATIC_VERSION": STATIC_VERSION
+    })
+
+
 def show_listing(request, pk):
+    listings = Listings.objects.all()
     l = Listings.objects.get(pk=pk)
     c = Comments.objects.filter(listing_id=l)
     bids = Bids.objects.filter(listing_id=l)
@@ -56,20 +75,15 @@ def show_listing(request, pk):
         "listing_user": l.user_id
     }
 
-    #Processo de manipulação dos formulários.
     if request.method == "POST": 
-        # Forumulários só são processados se o user estiver logado.
-        if request.user.is_authenticated: 
-            # Se o formulário for de Bid:
+        if request.user.is_authenticated:
+
             if request.POST.get("bid"):
                 form = bidsForm(request.POST)
-                # verifica se o formulário é valido:
                 if form.is_valid():
-                    # Se o valor bidado não for maior que o o último bid, não autoriza a operação e retorna mensagem.
                     if int(request.POST["bid"]) <= int(l.price):
                         context["message"] = "The bid value must me higher than the actual price."
                         return render(request, "auctions/listing.html", context)
-                    # Caso o valor for válido, salva no banco.
                     b = Bids(
                         price=request.POST["bid"],
                         listing_id=l,
@@ -78,16 +92,14 @@ def show_listing(request, pk):
                     b.save()
                     l.price = request.POST["bid"]
                     l.save(update_fields=["price"])
-                # Retorna uma mensagem se o formulário não for válido.
+                    return HttpResponseRedirect(f"/listing/{pk}")
                 else:
                     context["form"] =  form
                     return render(request, "auctions/listing.html", context)
-            # Se o formulário for de comment:
+                
             elif request.POST.get("comment"):
                 form = commentForm(request.POST)
-                # verifica se o formulário é valido:
                 if form.is_valid():
-                    # Salva no banco:
                     c = Comments(
                         comment = request.POST["comment"],
                         user_id = request.user,
@@ -95,16 +107,18 @@ def show_listing(request, pk):
                         listing_id = l
                     )
                     c.save()
+                    return HttpResponseRedirect(f"/listing/{pk}")
                 else:
                     context["form"] =  form
                     return render(request, "auctions/listing.html", context)
-        # Retorna uma mensagem se o user não estiver logado.
         else:
             context["message"] = "You need to be loged In to place a bid!"
             return render(request, "auctions/listing.html", context)
-    # Caso o usuário tente acessar um listing que não existe.      
-    # if pk > len(listing_list) or pk < 0:
-    #     pk = 1 
+              
+    if pk > len(listings) or pk < 0:
+        pk = 1 
+    if request.user == bids[actual_index(len(bids))].user_id:
+        context["message"] = "Your bid is the courrent bid!"
     return render(request, "auctions/listing.html", context)
     
 

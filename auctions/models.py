@@ -38,3 +38,7 @@ class Comments(models.Model):
     data_stamp = models.DateTimeField()
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     listing_id = models.ForeignKey(Listings, on_delete=models.CASCADE)
+
+class Watchlist(models.Model):
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    listing_id = models.ForeignKey(Listings, on_delete=models.CASCADE)
