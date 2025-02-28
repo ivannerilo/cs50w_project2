@@ -51,10 +51,26 @@ def index(request):
         "STATIC_VERSION": STATIC_VERSION
     })
 
+def categories(request):
+    return render(request, "auctions/categories.html", {
+        "categories": CATEGORIES,
+        "STATIC_VERSION": STATIC_VERSION
+    })
+
+def show_categories(request, category):
+    listings = Listings.objects.filter(category=category)
+    print(listings[0].image)
+    return render(request, "auctions/index.html", {
+        "listings": listings,
+        "STATIC_VERSION": STATIC_VERSION
+    })
+
+
+
 def watch_list(request):
-    l = Listings.objects.filter(id__in=Watchlist.objects.filter(user_id=request.user).values('listing_id'))
-    return render(request, "auctions/watchlist.html", {
-        "listings": l,
+    listings = Listings.objects.filter(id__in=Watchlist.objects.filter(user_id=request.user).values('listing_id'))
+    return render(request, "auctions/index.html", {
+        "listings": listings,
         "STATIC_VERSION": STATIC_VERSION
     })
 
@@ -64,6 +80,11 @@ def show_listing(request, pk):
     l = Listings.objects.get(pk=pk)
     c = Comments.objects.filter(listing_id=l)
     bids = Bids.objects.filter(listing_id=l)
+    watchlist = Watchlist.objects.filter(listing_id=l, user_id=request.user)
+    in_watchlist = False
+    if watchlist:
+        in_watchlist = True
+
     context = {
         "message": None,
         "listing": l,
@@ -72,7 +93,8 @@ def show_listing(request, pk):
         "comment_form": commentForm(),
         "STATIC_VERSION": STATIC_VERSION,
         "bids": len(bids),
-        "listing_user": l.user_id
+        "listsing_user": l.user_id,
+        "in_watchlist": in_watchlist
     }
 
     if request.method == "POST": 
@@ -137,6 +159,7 @@ def create(request):
                 user_id=request.user
             )
             s.save()
+            return HttpResponseRedirect(reverse("index"))
         else:
             return render(request, "auctions/create.html", {
                 "forms": form,

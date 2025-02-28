@@ -81,3 +81,12 @@ img {
     height: 100%;
 }
 
+.watchlist {
+    background-color: grey;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    width: 5%;
+    text-align: center;
+}
+

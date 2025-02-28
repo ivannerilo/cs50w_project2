@@ -12,6 +12,11 @@
     <div>
         <h3> {{listing.title}} </h3>
     </div>
+    {% if in_watchlist %}
+        <div class="watchlist">
+            <p><strong>Watchlist</strong></p>
+        </div>
+    {% endif %}
     <div>
         <img src="/media/{{listing.image}}"></img>
     </div>
