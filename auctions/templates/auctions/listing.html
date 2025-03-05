@@ -11,6 +11,7 @@
 <div class="show_listing_container"> 
     <div>
         <h3> {{listing.title}} </h3>
+        <p> {{is_active}} </p>
     </div>
     {% if in_watchlist %}
         <div class="watchlist">
@@ -51,6 +52,14 @@
             {% endfor %}
         </ul>
     </div>
+    {% if request_user == listing_user %}
+        <div>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="submit_btn" name="close" style="background-color: red;">Close</button>
+            </form>
+        </div>
+    {% endif %}
 </div>
 
 {% endblock %}

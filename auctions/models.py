@@ -25,6 +25,7 @@ class Listings(models.Model):
     data_stamp = models.DateTimeField(auto_now_add=True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE) #é pra ser username. não está guardando o id.
     category = models.CharField(max_length=15, choices=CATEGORIES)
+    is_active = models.BooleanField(default=True)
 
 
 class Bids(models.Model):

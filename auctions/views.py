@@ -51,21 +51,18 @@ def index(request):
         "STATIC_VERSION": STATIC_VERSION
     })
 
-def categories(request):
+def show_categories(request):
     return render(request, "auctions/categories.html", {
         "categories": CATEGORIES,
         "STATIC_VERSION": STATIC_VERSION
     })
 
-def show_categories(request, category):
+def category(request, category):
     listings = Listings.objects.filter(category=category)
-    print(listings[0].image)
     return render(request, "auctions/index.html", {
         "listings": listings,
         "STATIC_VERSION": STATIC_VERSION
     })
-
-
 
 def watch_list(request):
     listings = Listings.objects.filter(id__in=Watchlist.objects.filter(user_id=request.user).values('listing_id'))
@@ -76,10 +73,14 @@ def watch_list(request):
 
 
 def show_listing(request, pk):
-    listings = Listings.objects.all()
     l = Listings.objects.get(pk=pk)
     c = Comments.objects.filter(listing_id=l)
     bids = Bids.objects.filter(listing_id=l)
+    try:
+        auction_winner = bids[actual_index(len(bids))].user_id
+    except:
+        auction_winner = None
+
     watchlist = Watchlist.objects.filter(listing_id=l, user_id=request.user)
     in_watchlist = False
     if watchlist:
@@ -93,14 +94,16 @@ def show_listing(request, pk):
         "comment_form": commentForm(),
         "STATIC_VERSION": STATIC_VERSION,
         "bids": len(bids),
-        "listsing_user": l.user_id,
-        "in_watchlist": in_watchlist
+        "listing_user": l.user_id,
+        "in_watchlist": in_watchlist,
+        "request_user": request.user,
+        "is_active": l.is_active
     }
 
     if request.method == "POST": 
         if request.user.is_authenticated:
 
-            if request.POST.get("bid"):
+            if request.POST.get("bid"): # DECORATOR
                 form = bidsForm(request.POST)
                 if form.is_valid():
                     if int(request.POST["bid"]) <= int(l.price):
@@ -119,7 +122,7 @@ def show_listing(request, pk):
                     context["form"] =  form
                     return render(request, "auctions/listing.html", context)
                 
-            elif request.POST.get("comment"):
+            elif request.POST.get("comment"): # DECORATOR
                 form = commentForm(request.POST)
                 if form.is_valid():
                     c = Comments(
@@ -133,14 +136,28 @@ def show_listing(request, pk):
                 else:
                     context["form"] =  form
                     return render(request, "auctions/listing.html", context)
+            
+            elif request.POST.get("close"): # DECORATOR
+                if l.user_id != request.user:
+                    context["message"] = "You are not the list owner!"
+                    return render(request, "auctions/listing.html", context)
+                l.is_active = False
+                l.save()
+                print("Veio aqui pia")
+                return HttpResponseRedirect(f"/listing/{pk}")
+
         else:
             context["message"] = "You need to be loged In to place a bid!"
             return render(request, "auctions/listing.html", context)
-              
+    # - -------- - 
+    listings = Listings.objects.all()      
     if pk > len(listings) or pk < 0:
         pk = 1 
-    if request.user == bids[actual_index(len(bids))].user_id:
+    if request.user == auction_winner:
         context["message"] = "Your bid is the courrent bid!"
+        if l.is_active == False:
+            context["message"] = "YOU WIN THIS AUCTION!!!!"
+
     return render(request, "auctions/listing.html", context)
     
 
