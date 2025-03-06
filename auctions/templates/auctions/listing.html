@@ -11,7 +11,7 @@
 <div class="show_listing_container"> 
     <div>
         <h3> {{listing.title}} </h3>
-        <p> {{is_active}} </p>
+        <p> {{listing.is_active}} </p>
     </div>
     {% if in_watchlist %}
         <div class="watchlist">
@@ -35,7 +35,7 @@
     <div>
         <p><strong>Details</strong></p>
         <ui>
-            <li>Listed by:<strong> {{listing_user|capfirst}} </strong></li>
+            <li>Listed by:<strong> {{listing.user_id|capfirst}} </strong></li>
             <li>Category: {{listing.category|capfirst}} </li>
         </ui>
     </div>
@@ -52,7 +52,7 @@
             {% endfor %}
         </ul>
     </div>
-    {% if request_user == listing_user %}
+    {% if request_user == listing.user_id %}
         <div>
             <form method="post">
                 {% csrf_token %}

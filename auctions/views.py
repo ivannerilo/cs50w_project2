@@ -6,7 +6,7 @@ from django.urls import reverse
 from django import forms
 from .models import Listings, User, Bids, Comments, Watchlist, CATEGORIES
 from django.utils.timezone import now
-from .utils import actual_index
+from .utils import actual_index, who_winning, in_watchlist, lenth_listings
 import time
 
 from . import models
@@ -45,7 +45,7 @@ def index(request):
             w.save()
             return HttpResponseRedirect(reverse("index"))
 
-    listings = models.Listings.objects.all()
+    listings = models.Listings.objects.filter(is_active=True) #Adicionar verificações em outros lugares também.
     return render(request, "auctions/index.html", {
         "listings": listings,
         "STATIC_VERSION": STATIC_VERSION
@@ -71,91 +71,79 @@ def watch_list(request):
         "STATIC_VERSION": STATIC_VERSION
     })
 
-
 def show_listing(request, pk):
-    l = Listings.objects.get(pk=pk)
-    c = Comments.objects.filter(listing_id=l)
-    bids = Bids.objects.filter(listing_id=l)
-    try:
-        auction_winner = bids[actual_index(len(bids))].user_id
-    except:
-        auction_winner = None
-
-    watchlist = Watchlist.objects.filter(listing_id=l, user_id=request.user)
-    in_watchlist = False
-    if watchlist:
-        in_watchlist = True
+    listing = Listings.objects.get(pk=pk) #Possível join
+    comments = Comments.objects.filter(listing_id=listing)
+    bids = Bids.objects.filter(listing_id=listing)
+    auction_winner = who_winning(bids)
+    watchlist = in_watchlist(listing, request.user)
 
     context = {
-        "message": None,
-        "listing": l,
-        "comments": c,
+        "listing": listing,
+        "comments": comments,
+        "bids": len(bids),
         "bid_form": bidsForm(),
         "comment_form": commentForm(),
-        "STATIC_VERSION": STATIC_VERSION,
-        "bids": len(bids),
-        "listing_user": l.user_id,
-        "in_watchlist": in_watchlist,
+        "in_watchlist": watchlist,
         "request_user": request.user,
-        "is_active": l.is_active
+        "STATIC_VERSION": STATIC_VERSION
     }
 
     if request.method == "POST": 
         if request.user.is_authenticated:
-
-            if request.POST.get("bid"): # DECORATOR
-                form = bidsForm(request.POST)
-                if form.is_valid():
-                    if int(request.POST["bid"]) <= int(l.price):
-                        context["message"] = "The bid value must me higher than the actual price."
+            match request.POST.keys():
+                case keys if "bid" in keys:
+                    form = bidsForm(request.POST)
+                    if form.is_valid():
+                        if int(request.POST["bid"]) <= int(listing.price):
+                            context["message"] = "The bid value must me higher than the actual price."
+                            return render(request, "auctions/listing.html", context)
+                        b = Bids(
+                            price=request.POST["bid"],
+                            listing_id=listing,
+                            user_id=request.user
+                        )
+                        b.save()
+                        listing.price = request.POST["bid"]
+                        listing.save(update_fields=["price"])
+                        return HttpResponseRedirect(f"/listing/{pk}")
+                    else:
+                        context["form"] =  form
                         return render(request, "auctions/listing.html", context)
-                    b = Bids(
-                        price=request.POST["bid"],
-                        listing_id=l,
-                        user_id=request.user
-                    )
-                    b.save()
-                    l.price = request.POST["bid"]
-                    l.save(update_fields=["price"])
-                    return HttpResponseRedirect(f"/listing/{pk}")
-                else:
-                    context["form"] =  form
-                    return render(request, "auctions/listing.html", context)
-                
-            elif request.POST.get("comment"): # DECORATOR
-                form = commentForm(request.POST)
-                if form.is_valid():
-                    c = Comments(
-                        comment = request.POST["comment"],
-                        user_id = request.user,
-                        data_stamp = now(),
-                        listing_id = l
-                    )
-                    c.save()
-                    return HttpResponseRedirect(f"/listing/{pk}")
-                else:
-                    context["form"] =  form
-                    return render(request, "auctions/listing.html", context)
-            
-            elif request.POST.get("close"): # DECORATOR
-                if l.user_id != request.user:
-                    context["message"] = "You are not the list owner!"
-                    return render(request, "auctions/listing.html", context)
-                l.is_active = False
-                l.save()
-                print("Veio aqui pia")
-                return HttpResponseRedirect(f"/listing/{pk}")
 
+                case keys if "comment" in keys:
+                    form = commentForm(request.POST)
+                    if form.is_valid():
+                        c = Comments(
+                            comment = request.POST["comment"],
+                            user_id = request.user,
+                            data_stamp = now(),
+                            listing_id = listing
+                        )
+                        c.save()
+                        return HttpResponseRedirect(f"/listing/{pk}")
+                    else:
+                        context["form"] =  form
+                        return render(request, "auctions/listing.html", context)
+                
+                case keys if "close" in keys:
+                    if listing.user_id != request.user:
+                        context["message"] = "You are not the list owner!"
+                        return render(request, "auctions/listing.html", context)
+                    listing.is_active = False
+                    listing.save()
+                    print("Veio aqui pia")
+                    return HttpResponseRedirect(f"/listing/{pk}")
         else:
-            context["message"] = "You need to be loged In to place a bid!"
+            context["message"] = "You need to be loged In!"
             return render(request, "auctions/listing.html", context)
     # - -------- - 
-    listings = Listings.objects.all()      
-    if pk > len(listings) or pk < 0:
+    len_listings = lenth_listings()      
+    if pk > len_listings or pk < 0:
         pk = 1 
     if request.user == auction_winner:
         context["message"] = "Your bid is the courrent bid!"
-        if l.is_active == False:
+        if listing.is_active == False:
             context["message"] = "YOU WIN THIS AUCTION!!!!"
 
     return render(request, "auctions/listing.html", context)
