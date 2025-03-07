@@ -13,18 +13,17 @@
     <a href="/listing/{{listing.pk}}" class="a_div">
         <div class="listing_container">
             <div class="listing_image">
-                <img src="/media/{{listing.image}}"></img>
+                {% if listing.img_is_url %}
+                    <img src="{{listing.img_url}}"></img>
+                {% else %}
+                    <img src="/media/{{listing.image}}"></img>
+                {% endif %}
             </div>
             <div class="listing_content">
                 <h5><strong> {{listing.title}} </strong></h5>
                 <p><strong>Price:</strong> U${{listing.price}}</p>
                 <p> {{listing.description}} </p>
                 <small> {{listing.data_stamp}} </small>
-                <form method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="watchlist" value="{{listing.pk}}">
-                    <button type="submit">Add to watchlist.</button>
-                </form>
             </div>
         </div>
     </a>

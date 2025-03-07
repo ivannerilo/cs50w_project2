@@ -22,7 +22,7 @@ class Listings(models.Model):
     price = models.DecimalField(decimal_places=2, max_digits=10)
     image = models.ImageField(blank=True, null=True, upload_to="images/")
     img_is_url = models.BooleanField()
-    # img_url = models.CharField(blank=True, max_length=2048) #Adicionar opção url e makemigrations!
+    img_url = models.CharField(blank=True, max_length=2048)
     data_stamp = models.DateTimeField(auto_now_add=True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE) #é pra ser username. não está guardando o id.
     category = models.CharField(max_length=15, choices=CATEGORIES)

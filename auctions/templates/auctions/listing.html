@@ -19,7 +19,11 @@
         </div>
     {% endif %}
     <div>
-        <img src="/media/{{listing.image}}"></img>
+        {% if listing.img_is_url %}
+            <img src="{{listing.img_url}}"></img>
+        {% else %}
+            <img src="/media/{{listing.image}}"></img>
+        {% endif %}
     </div>
 
     <p>{{listing.description}}</p>
@@ -52,6 +56,20 @@
             {% endfor %}
         </ul>
     </div>
+    {% if in_watchlist %}
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="watchlist" value="{{listing.pk}}">
+            <button type="submit">Remove from watchlist.</button>
+        </form>
+    {% else %}
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="watchlist" value="{{listing.pk}}">
+            <button type="submit">Add to watchlist.</button>
+        </form>
+    {% endif %}
+
     {% if request_user == listing.user_id %}
         <div>
             <form method="post">

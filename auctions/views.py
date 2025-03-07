@@ -14,37 +14,34 @@ from . import models
 STATIC_VERSION = int(time.time()) 
 
 class listingForm(forms.Form):
-    title = forms.CharField(max_length=50)
-    description = forms.CharField(max_length=200, widget=forms.Textarea(
-        attrs={"rows": 10, "cols": 50, "placeholder": "Describe the item here!"}
-    ))
-    price = forms.DecimalField(decimal_places=2, max_digits=10)
-    image = forms.ImageField()
-    category = forms.ChoiceField(choices=CATEGORIES)
+    title = forms.CharField(label="", max_length=50, 
+        widget=forms.TextInput(attrs={"placeholder": "Title:"})
+    )
+    description = forms.CharField(label="", max_length=200, 
+        widget=forms.Textarea(attrs={"rows": 10, "cols": 50, "placeholder": "Describe the item here!"})
+    )
+    price = forms.DecimalField(label="", decimal_places=2, max_digits=10, 
+        widget=forms.NumberInput(attrs={"placeholder": "Price:"})
+    )
+    image = forms.ImageField(label="Upload the image here or insert a URL:", required=False)
+    image_url = forms.CharField(label="", max_length=2048, required=False, 
+        widget=forms.TextInput(attrs={"placeholder": "Image Url: "})
+    )
+    category = forms.ChoiceField(choices=CATEGORIES, 
+        widget=forms.Select(attrs={"placeholder": "Category: "})  # Select não exibe placeholder, então pode ser removido
+    )
 
 
 class bidsForm(forms.Form):
-    bid = forms.DecimalField(
-        label='',
-        decimal_places=2,
-        max_digits=10,
-        widget=forms.TextInput(attrs={"class": "bid_form"}))
+    bid = forms.DecimalField(label='', decimal_places=2, max_digits=10,
+        widget=forms.TextInput(attrs={"class": "bid_form"}
+    ))
 
 class commentForm(forms.Form):
     comment = forms.CharField(max_length=200, label="", widget=forms.TextInput(attrs={"class": "comment_form"}))
 
 
 def index(request):
-    if request.method == 'POST':
-        if request.user.is_authenticated:
-            l = Listings.objects.get(pk=request.POST["watchlist"])
-            w = Watchlist(
-                listing_id = l,
-                user_id = request.user
-            )
-            w.save()
-            return HttpResponseRedirect(reverse("index"))
-
     listings = models.Listings.objects.filter(is_active=True) #Adicionar verificações em outros lugares também.
     return render(request, "auctions/index.html", {
         "listings": listings,
@@ -58,14 +55,14 @@ def show_categories(request):
     })
 
 def category(request, category):
-    listings = Listings.objects.filter(category=category)
+    listings = Listings.objects.filter(category=category, is_active=True)
     return render(request, "auctions/index.html", {
         "listings": listings,
         "STATIC_VERSION": STATIC_VERSION
     })
 
 def watch_list(request):
-    listings = Listings.objects.filter(id__in=Watchlist.objects.filter(user_id=request.user).values('listing_id'))
+    listings = Listings.objects.filter(id__in=Watchlist.objects.filter(user_id=request.user).values('listing_id'), is_active=True)
     return render(request, "auctions/index.html", {
         "listings": listings,
         "STATIC_VERSION": STATIC_VERSION
@@ -95,8 +92,8 @@ def show_listing(request, pk):
                 case keys if "bid" in keys:
                     form = bidsForm(request.POST)
                     if form.is_valid():
-                        if int(request.POST["bid"]) <= int(listing.price):
-                            context["message"] = "The bid value must me higher than the actual price."
+                        if int(request.POST["bid"]) <= int(listing.price) or request.user == listing.user_id:
+                            context["message"] = "The bid value must me higher than the actual price. And you cant bid in your own listing!"
                             return render(request, "auctions/listing.html", context)
                         b = Bids(
                             price=request.POST["bid"],
@@ -134,6 +131,20 @@ def show_listing(request, pk):
                     listing.save()
                     print("Veio aqui pia")
                     return HttpResponseRedirect(f"/listing/{pk}")
+                
+                case keys if "watchlist" in keys:
+                        if watchlist:
+                            w = Watchlist.objects.get(listing_id=listing, user_id=request.user).delete()
+                            return HttpResponseRedirect(f"/listing/{pk}")
+                        w = Watchlist(
+                            listing_id = listing,
+                            user_id = request.user
+                        )
+                        w.save()
+                        return HttpResponseRedirect(f"/listing/{pk}")
+
+
+
         else:
             context["message"] = "You need to be loged In!"
             return render(request, "auctions/listing.html", context)
@@ -153,16 +164,20 @@ def create(request):
     if request.method == 'POST':
         form = listingForm(request.POST, request.FILES)
         if form.is_valid():
-            s = Listings.objects.create(
+            s = Listings(
                 title=form.cleaned_data["title"],
                 description=form.cleaned_data["description"],
                 price=form.cleaned_data["price"],
-                image=form.cleaned_data["image"],
-                img_is_url=False, #Adiconar a opção.
                 category=form.cleaned_data["category"],
                 data_stamp=now(),
                 user_id=request.user
             )
+            if form.cleaned_data["image_url"]:
+                s.img_is_url = True
+                s.img_url = form.cleaned_data["image_url"]
+            else:
+                s.image = form.cleaned_data["image"]
+                s.img_is_url = False
             s.save()
             return HttpResponseRedirect(reverse("index"))
         else:
